@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
+use App\Models\Department;
 use App\Models\User;
+use App\Models\UserType;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +22,10 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        $companies = Company::all();
+        $departments = Department::all();
+
+        return view('auth.register', compact('companies', 'departments'));
     }
 
     /**
@@ -30,15 +36,22 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
+            'employee_number' => ['required', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'department_id' => 'required|exists:departments,id',
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $studentType = UserType::where('name', 'Alumno')->value('id');
+
         $user = User::create([
+            'employee_number' => $request->employee_number,
             'name' => $request->name,
+            'department_id' => $request->department_id,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'user_type_id' => $studentType,
         ]);
 
         event(new Registered($user));
